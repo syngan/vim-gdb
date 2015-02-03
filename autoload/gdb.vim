@@ -162,7 +162,9 @@ function! gdb#execute(mode) abort " {{{
   endif
 
   call vimconsole#log(out)
-  call s:show_page(out)
+  if str !~# '^\s*bt\s*'
+    call s:show_page(out)
+  endif
   if a:mode ==# 'i'
     " insert-mode になってほしい.
     startinsert!
