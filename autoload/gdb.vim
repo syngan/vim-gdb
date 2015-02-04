@@ -59,21 +59,15 @@ function! gdb#kill(...) abort " {{{
   endif
 endfunction " }}}
 
-function! s:parse_lno(str) abort " {{{
-  " ここを修正時には s:showpage の filter()も修正が必要.
-  if a:str =~# '^\d\+\s'
-    return str2nr(matchstr(a:str, '^\d\+\ze\s'))
-  else
-    return -1
-  endif
-endfunction " }}}
-
 function! s:parse_fname(str) abort " {{{
   let m = matchlist(a:str, 'at \(.*\):\(\d\+\)$')
-  if m == []
-    return ['', -1]
-  else
+  if m != []
     return [m[1], str2nr(m[2])]
+  endif
+  if a:str =~# '^\d\+\s'
+    return ['', str2nr(matchstr(a:str, '^\d\+\ze\s'))]
+  else
+    return ['', -1]
   endif
 endfunction " }}}
 
@@ -82,34 +76,15 @@ function! s:show_page(out) abort " {{{
 
   " @see s:parse_lno
   " @see s:parse_fname
-  let lines = filter(lines, 
-        \ 'v:val =~# ''at .*:\d\+'' ||'
-        \ . 'v:val =~# ''^\d\+\s''')
-  call vimconsole#log('show page')
-  call vimconsole#log(lines)
-
-  let found_lno = 0
   let update = 0
-  for i in range(len(lines)-1, 0, -1)
-    let str = lines[i]
-    if !found_lno
-      let lno = s:parse_lno(str)
-      if lno > 0
-        let s:gdb[b:sggdb_name].lno = lno
-        let found_lno = 1
-        let update = 1
-        continue
-      endif
-    endif
-
+  for str in lines
     let [fname, lno] = s:parse_fname(str)
     if fname != ''
-      if !found_lno
-        let s:gdb[b:sggdb_name].lno = lno
-        let update = 1
-      endif
-        let s:gdb[b:sggdb_name].fname = fname
-      break
+      let s:gdb[b:sggdb_name].fname = fname
+    endif
+    if lno > 0
+      let s:gdb[b:sggdb_name].lno = lno
+      let update = 1
     endif
   endfor
 
