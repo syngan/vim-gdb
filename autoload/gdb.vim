@@ -7,13 +7,11 @@ let s:name = 'sg_gdb'
 let s:prompt = '(gdb) '
 let s:V = vital#of(s:name)
 let s:PM = s:V.import('ProcessManager')
+let s:gdb = {}
 
 :highlight sggdb_hl_group  cterm=bold,underline ctermfg=red ctermbg=black
 :highlight sggdb_hl_prompt cterm=bold           ctermfg=139 ctermbg=black
 :highlight sggdb_hl_input  ctermfg=yellow ctermbg=black
-
-
-let s:gdb = {}
 
 function! s:exit(name) abort " {{{
   only!
@@ -87,6 +85,7 @@ function! s:show_page(out) abort " {{{
   let lines = filter(lines, 
         \ 'v:val =~# ''at .*:\d\+'' ||'
         \ . 'v:val =~# ''^\d\+\s''')
+  call vimconsole#log('show page')
   call vimconsole#log(lines)
 
   let found_lno = 0
@@ -131,7 +130,7 @@ function! s:show_page(out) abort " {{{
         if s:gdb[name].hlid > 0
           call matchdelete(s:gdb[name].hlid)
         endif
-        execute printf(':e +%d `=fname`', s:gdb[name].lno)
+        execute printf('silent :e +%d `=fname`', s:gdb[name].lno)
         let s:gdb[name].hlid = matchadd('sggdb_hl_group', printf('\%%%dl', s:gdb[name].lno))
         call vimconsole#log(printf('hlid=%s', string(s:gdb[name].hlid)))
       finally
@@ -143,7 +142,6 @@ function! s:show_page(out) abort " {{{
 
   return lines
 endfunction " }}}
-
 
 function! gdb#execute(mode) abort " {{{
   if !exists('b:sggdb_name')
@@ -172,6 +170,10 @@ function! gdb#execute(mode) abort " {{{
 endfunction " }}}
 
 function! s:write(str) abort " {{{
+  if get(g:, 'sggdb_verbose', 0)
+    redraw | echo printf('send [%s]', a:str)
+  endif
+  call vimconsole#log(printf('send [%s]', a:str))
   call s:PM.writeln(b:sggdb_name, a:str)
   if line('.') < line('$') 
     execute printf("%d,$delete _", line('.')+1)
