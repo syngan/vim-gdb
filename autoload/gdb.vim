@@ -16,11 +16,8 @@ let s:PM = s:V.import('ProcessManager')
 let s:gdb = {}
 
 function! s:exit(name) abort " {{{
-  call gdb#kill(a:name)
   only!
-  if has_key(s:gdb, a:name)
-    unlet! s:gdb[a:name]
-  endif
+  call gdb#kill(a:name)
 endfunction " }}}
 
 function! gdb#launch(args) abort " {{{
@@ -58,7 +55,10 @@ endfunction " }}}
 
 function! gdb#kill(...) abort " {{{
   let name = a:0 > 0 ? a:1 : b:sggdb_name
-	echo s:PM.kill(name)
+  if has_key(s:gdb, name)
+    echo s:PM.kill(name)
+    unlet! s:gdb[name]
+  endif
 endfunction " }}}
 
 function! s:parse_lno(str) abort " {{{
