@@ -18,14 +18,14 @@ function! s:exit(name) abort " {{{
   call gdb#kill(a:name)
 endfunction " }}}
 
-function! gdb#launch(args) abort " {{{
+function! gdb#launch(cmd_args) abort " {{{
   if !s:PM.is_available()
     " +reltime
     " vimproc
-    throw "vimproc?"
+    throw "vimproc and +reltime are required"
   endif
   let name = s:name
-  call s:PM.touch(name, 'gdb ' . a:args)
+  call s:PM.touch(name, 'gdb ' . a:cmd_args)
 
   " タブを開く.
   :tabnew
@@ -131,9 +131,11 @@ function! gdb#execute(mode) abort " {{{
   endif
   let line = getline('.')
   if line =~# '^' . s:prompt
-    let str = matchstr(line, printf('^%s\zs.*$', s:prompt)) 
+    let str = matchstr(line, printf('^%s\zs.*$', s:prompt))
     let out = s:write(str)
   elseif line !~# '(y or n)'
+    " なんだろう
+    " Start it from the beginning? (y or n) [answered Y; input not from terminal]
     let str = matchstr(line, '(y or n) \zs.*$')
     let out = s:write(str)
   else
@@ -156,7 +158,7 @@ function! s:write(str) abort " {{{
   endif
   call vimconsole#log(printf('send [%s]', a:str))
   call s:PM.writeln(b:sggdb_name, a:str)
-  if line('.') < line('$') 
+  if line('.') < line('$')
     execute printf("%d,$delete _", line('.')+1)
   endif
   while 1
@@ -166,8 +168,9 @@ function! s:write(str) abort " {{{
       break
     endif
     if type ==# 'timedout'
+      " timedout は typo だろうからそのうち修正されるのかどうか.
       " 非同期に処理したいところ
-      " @TODO wait している以外の待ち, 
+      " @TODO wait している以外の待ち,
       " @TODO コマンドの入力待ちとかにどう対応するか
       silent $ put = out
       if out =~# '(y or n) $'
@@ -176,7 +179,7 @@ function! s:write(str) abort " {{{
 
       continue
     endif
-    
+
     echoerr printf('type=%s, err=%s', type, err)
     return
   endwhile
