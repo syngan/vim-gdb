@@ -13,12 +13,21 @@ let s:gdb = {}
 :highlight sggdb_hl_input  ctermfg=yellow ctermbg=black
 
 function! s:exit(name) abort " {{{
-  only!
+  only
   call gdb#kill(a:name)
 endfunction " }}}
 
 function! gdb#pm() abort " {{{
   return s:PM
+endfunction " }}}
+
+function! s:open_srcwin(name) abort " {{{
+  :new
+  if !has_key(s:gdb, a:name)
+    let s:gdb[a:name] = {}
+    let s:gdb[a:name].hlid = -1 " ハイライト中の highlight-id
+  endif
+  let s:gdb[a:name].file_winnr = gift#uniq_winnr()
 endfunction " }}}
 
 function! gdb#launch(cmd_args) abort " {{{
@@ -32,10 +41,6 @@ function! gdb#launch(cmd_args) abort " {{{
 
   " タブを開く.
   :tabnew
-  let s:gdb[name] = {}
-  let s:gdb[name].file_winnr = gift#uniq_winnr()
-  let s:gdb[name].hlid = -1
-  :rightbelow new
   :e '[sg-gdb-log]'
   let b:sggdb_name = name
   call matchadd('sggdb_hl_prompt', s:prompt)
@@ -52,6 +57,14 @@ function! gdb#launch(cmd_args) abort " {{{
   silent $ put = s:prompt
   execute 'normal!' 'A'
   autocmd QuitPre <buffer> call s:exit(b:sggdb_name)
+
+  let winnr = gift#uniq_winnr()
+
+  " ソースコード表示用
+  call s:open_srcwin(name)
+
+  " 元の位置に戻る.
+  call gift#jump_window(winnr)
 endfunction " }}}
 
 function! gdb#kill(...) abort " {{{
@@ -104,9 +117,15 @@ function! s:show_page(out) abort " {{{
       let winnr = gift#uniq_winnr()
       let save_pos = getpos('.')
       try
-        call gift#jump_window(s:gdb[name].file_winnr)
+        let ret = gift#jump_window(s:gdb[name].file_winnr)
+        if ret == -1
+          call s:open_srcwin(name)
+        endif
         if s:gdb[name].hlid > 0
-          call matchdelete(s:gdb[name].hlid)
+          try
+            call matchdelete(s:gdb[name].hlid)
+          catch /.*E803: .*/
+          endtry
         endif
         execute printf('silent :e +%d `=fname`', s:gdb[name].lno)
         let s:gdb[name].hlid = matchadd('sggdb_hl_group', printf('\%%%dl', s:gdb[name].lno))
