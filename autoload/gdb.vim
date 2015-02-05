@@ -25,7 +25,7 @@ function! gdb#launch(cmd_args) abort " {{{
   if !s:PM.is_available()
     " +reltime
     " vimproc
-    throw "vimproc and +reltime are required"
+    throw 'vimproc and +reltime are required'
   endif
   let name = s:name
   call s:PM.touch(name, 'gdb ' . a:cmd_args)
@@ -82,7 +82,7 @@ function! s:show_page(out) abort " {{{
   let update = 0
   for str in lines
     let [fname, lno] = s:parse_fname(str)
-    if fname != ''
+    if fname !=# ''
       let s:gdb[b:sggdb_name].fname = fname
     endif
     if lno > 0
@@ -162,7 +162,7 @@ function! s:write(str) abort " {{{
   call vimconsole#log(printf('send [%s]', a:str))
   call s:PM.writeln(b:sggdb_name, a:str)
   if line('.') < line('$')
-    execute printf("%d,$delete _", line('.')+1)
+    execute printf('%d,$delete _', line('.')+1)
   endif
   while 1
     let [out, err, type] = s:PM.read(b:sggdb_name, [s:prompt])
@@ -185,7 +185,12 @@ function! s:write(str) abort " {{{
     echoerr printf('type=%s, err=%s', type, err)
     return
   endwhile
-  silent $ put = out
+  if out !=# ''
+    silent $ put = out
+  endif
+  if err !=# ''
+    silent $ put = err
+  endif
   silent $ put = s:prompt
   $
   return out
