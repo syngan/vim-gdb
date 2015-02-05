@@ -5,8 +5,7 @@ set cpo&vim
 
 let s:name = 'sg_gdb'
 let s:prompt = '(gdb) '
-let s:V = vital#of(s:name)
-let s:PM = s:V.import('ProcessManager')
+let s:PM = gdb#pm#import()
 let s:gdb = {}
 
 :highlight sggdb_hl_group  cterm=bold,underline ctermfg=red ctermbg=black
@@ -16,6 +15,10 @@ let s:gdb = {}
 function! s:exit(name) abort " {{{
   only!
   call gdb#kill(a:name)
+endfunction " }}}
+
+function! gdb#pm() abort " {{{
+  return s:PM
 endfunction " }}}
 
 function! gdb#launch(cmd_args) abort " {{{
@@ -167,8 +170,7 @@ function! s:write(str) abort " {{{
       " some error
       break
     endif
-    if type ==# 'timedout'
-      " timedout は typo だろうからそのうち修正されるのかどうか.
+    if type ==# 'timeout'
       " 非同期に処理したいところ
       " @TODO wait している以外の待ち,
       " @TODO コマンドの入力待ちとかにどう対応するか

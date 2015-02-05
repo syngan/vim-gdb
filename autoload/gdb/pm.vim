@@ -1,23 +1,41 @@
+" modified ver of vital.vim ProcessManager.vim
+
 let s:save_cpo = &cpo
 set cpo&vim
 
 let s:_processes = {}
 
-function! s:_vital_loaded(V) abort
-  let s:V = a:V
-  let s:S = s:V.import('Data.String')
-  let s:P = s:V.import('Process')
-endfunction
+function! gdb#pm#import() abort " {{{
+  let pm = s:
+  let pm.is_available = function('s:is_available')
+  let pm.status = function('s:status')
+  let pm.term = function('s:term')
+  let pm.read = function('s:read')
+  let pm.read_wait = function('s:read_wait')
+  let pm.write = function('s:write')
+  let pm.writeln = function('s:writeln')
+  let pm.touch = function('s:touch')
+  let pm.kill = function('s:kill')
+  return pm
+endfunction " }}}
 
-function! s:_vital_depends() abort
-  return ['Data.String', 'Process']
-endfunction
+function! s:has_vimproc() abort " {{{
+  if !exists('s:exists_vimproc')
+    try
+      call vimproc#version()
+      let s:exists_vimproc = 1
+    catch
+      let s:exists_vimproc = 0
+    endtry
+  endif
+  return s:exists_vimproc
+endfunction " }}}
 
-function! s:is_available() abort
-  return s:P.has_vimproc()
-endfunction
+function! s:is_available() abort " {{{
+  return s:has_vimproc() && has('reltime')
+endfunction " }}}
 
-function! s:touch(name, cmd) abort
+function! s:touch(name, cmd) abort " {{{
   if has_key(s:_processes, a:name)
     return 'existing'
   else
@@ -25,33 +43,37 @@ function! s:touch(name, cmd) abort
     let s:_processes[a:name] = p
     return 'new'
   endif
-endfunction
+endfunction " }}}
 
-function! s:_stop(i, ...) abort
-  let p = s:_processes[a:i]
+function! s:_stop(i, ...) abort " {{{
+  let p = s:_processes[a:i] " {{{ " }}}
   call p.kill(get(a:000, 0, 0) ? g:vimproc#SIGKILL : g:vimproc#SIGTERM)
   " call p.waitpid()
   unlet s:_processes[a:i]
   if has_key(s:state, a:i)
     unlet s:state[a:i]
   endif
-endfunction
+endfunction " }}}
 
-function! s:term(i) abort
+function! s:term(i) abort " {{{
   return s:_stop(a:i, 0)
-endfunction
+endfunction " }}}
 
-function! s:kill(i) abort
+function! s:kill(i) abort " {{{
   return s:_stop(a:i, 1)
-endfunction
+endfunction " }}}
 
-function! s:read(i, endpatterns) abort
+function! s:read(i, endpatterns) abort " {{{
   return s:read_wait(a:i, 0.05, a:endpatterns)
-endfunction
+endfunction " }}}
 
 let s:state = {}
 
-function! s:read_wait(i, wait, endpatterns) abort
+function! s:substitute_last(expr, pat, sub) abort " {{{
+  return substitute(a:expr, printf('.*\zs%s', a:pat), a:sub, '')
+endfunction " }}}
+
+function! s:read_wait(i, wait, endpatterns) abort " {{{
   if !has_key(s:_processes, a:i)
     throw printf("ProcessManager doesn't know about %s", a:i)
   endif
@@ -71,7 +93,7 @@ function! s:read_wait(i, wait, endpatterns) abort
     if x ==# '' && y ==# ''
       if str2float(reltimestr(reltime(lastchanged))) > a:wait
         let s:state[a:i] = 'reading'
-        return [out_memo, err_memo, 'timedout']
+        return [out_memo, err_memo, 'timeout']
       endif
     else
       let lastchanged = reltime()
@@ -80,18 +102,14 @@ function! s:read_wait(i, wait, endpatterns) abort
       for pattern in a:endpatterns
         if out_memo =~ ("\\(^\\|\n\\)" . pattern)
           let s:state[a:i] = 'idle'
-          return [s:S.substitute_last(out_memo, pattern, ''), err_memo, 'matched']
+          return [s:substitute_last(out_memo, pattern, ''), err_memo, 'matched']
         endif
       endfor
     endif
   endwhile
-endfunction
+endfunction " }}}
 
-function! s:state(i) abort
-  return get(s:state, a:i, 'undefined')
-endfunction
-
-function! s:write(i, str) abort
+function! s:write(i, str) abort " {{{
   if !has_key(s:_processes, a:i)
     throw printf("ProcessManager doesn't know about %s", a:i)
   endif
@@ -103,13 +121,13 @@ function! s:write(i, str) abort
   call p.stdin.write(a:str)
 
   return 'active'
-endfunction
+endfunction " }}}
 
-function! s:writeln(i, str) abort
+function! s:writeln(i, str) abort " {{{
   return s:write(a:i, a:str . "\n")
-endfunction
+endfunction " }}}
 
-function! s:status(i) abort
+function! s:status(i) abort " {{{
   if !has_key(s:_processes, a:i)
     throw printf("ProcessManager doesn't know about %s", a:i)
   endif
@@ -121,11 +139,7 @@ function! s:status(i) abort
   return get(p.checkpid(), 0, '') ==# 'run'
         \ ? 'active'
         \ : 'inactive'
-endfunction
-
-function! s:debug_processes() abort
-  return s:_processes
-endfunction
+endfunction " }}}
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
