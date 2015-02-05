@@ -127,24 +127,37 @@ function! s:is_igncmd(str) abort " {{{
   return a:str =~# '^\s*\(bt\|l\%[ist]\|i\%[nfo]\)\>'
 endfunction " }}}
 
+function! s:is_quit(str) abort " {{{
+  return a:str =~# '^\s*q\%[uit]\>'
+endfunction " }}}
+
 function! gdb#execute(mode) abort " {{{
   if !exists('b:sggdb_name')
     echoerr 'sggdb: gdb#launch() is not called'
     return
   endif
+  if !has_key(s:gdb, b:sggdb_name)
+    " killed
+    return
+  endif
   let line = getline('.')
   if line =~# '^' . s:prompt
     let str = matchstr(line, printf('^%s\zs.*$', s:prompt))
-    let out = s:write(str)
   elseif line !~# '(y or n)'
     " なんだろう
     " Start it from the beginning? (y or n) [answered Y; input not from terminal]
     let str = matchstr(line, '(y or n) \zs.*$')
-    let out = s:write(str)
   else
     return
   endif
 
+  if s:is_quit(str)
+    call s:PM.writeln(b:sggdb_name, str)
+    call gdb#kill()
+    silent $ put = 'bye'
+    return
+  endif
+  let out = s:write(str)
   call vimconsole#log(out)
   if !s:is_igncmd(str)
     call s:show_page(out)
