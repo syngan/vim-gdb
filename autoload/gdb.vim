@@ -37,8 +37,8 @@ function! gdb#launch(args) abort " {{{
   let b:sggdb_name = name
   call matchadd('sggdb_hl_prompt', s:prompt)
   call matchadd('sggdb_hl_input', s:prompt . '\zs.*')
-  inoremap <buffer> <CR> <ESC>:call gdb#execute('i')<CR>
-  nnoremap <buffer> <CR> :call gdb#execute('n')<CR>
+  inoremap <silent> <buffer> <CR> <ESC>:call gdb#execute('i')<CR>
+  nnoremap <silent> <buffer> <CR> :call gdb#execute('n')<CR>
   setlocal bufhidden=hide buftype=nofile noswapfile nobuflisted
   let [out, err, type] = s:PM.read_wait(b:sggdb_name, 0.5, [s:prompt])
   if type !=# 'matched'
