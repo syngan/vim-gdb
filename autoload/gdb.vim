@@ -118,6 +118,12 @@ function! s:show_page(out) abort " {{{
   return lines
 endfunction " }}}
 
+function! s:is_igncmd(str) abort " {{{
+  " 実行に直接関係のないコマンド.
+  " ソールファイルの表示を変更する必要がないとか.
+  return a:str =~# '^\s*\(bt\|l\%[ist]\|i\%[nfo]\)\>'
+endfunction " }}}
+
 function! gdb#execute(mode) abort " {{{
   if !exists('b:sggdb_name')
     echoerr 'sggdb: gdb#launch() is not called'
@@ -135,7 +141,7 @@ function! gdb#execute(mode) abort " {{{
   endif
 
   call vimconsole#log(out)
-  if str !~# '^\s*bt\s*'
+  if !s:is_igncmd(str)
     call s:show_page(out)
   endif
   if a:mode ==# 'i'
