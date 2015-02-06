@@ -23,11 +23,48 @@ endfunction " }}}
 
 function! s:open_srcwin(name) abort " {{{
   :new
-  if !has_key(s:gdb, a:name)
-    let s:gdb[a:name] = {}
-    let s:gdb[a:name].hlid = -1 " ハイライト中の highlight-id
-  endif
   let s:gdb[a:name].file_winnr = gift#uniq_winnr()
+  let w:sggdb_name = a:name
+endfunction " }}}
+
+function! gdb#command(cmd) abort " {{{
+  let name = get(w:, 'sggdb_name', get(b:, 'sggdb_name', ''))
+  if name ==# ''
+    return
+  endif
+
+  let winnr = gift#uniq_winnr()
+  let do_jump = (s:gdb[name].debug_winnr != winnr)
+  if do_jump
+    if gift#jump_window(s:gdb[name].debug_winnr) < -1
+      return
+    endif
+  endif
+  try
+    silent $ put = s:prompt . a:cmd
+    call s:command(a:cmd)
+  finally
+    if do_jump
+      call gift#jump_window(winnr)
+    endif
+  endtry
+
+endfunction " }}}
+
+function! s:command(cmd) abort " {{{
+  let str = a:cmd
+
+  if s:is_quit(str)
+    call s:PM.writeln(b:sggdb_name, str)
+    call gdb#kill()
+    silent $ put = 'bye'
+    return
+  endif
+  let out = s:write(str)
+  call vimconsole#log(out)
+  if !s:is_igncmd(str)
+    call s:show_page(out)
+  endif
 endfunction " }}}
 
 function! gdb#launch(cmd_args) abort " {{{
@@ -36,7 +73,7 @@ function! gdb#launch(cmd_args) abort " {{{
     " vimproc
     throw 'vimproc and +reltime are required'
   endif
-  let name = s:name
+  let name = s:name " 一意 ID
   call s:PM.touch(name, 'gdb ' . a:cmd_args)
 
   " タブを開く.
@@ -60,11 +97,17 @@ function! gdb#launch(cmd_args) abort " {{{
 
   let winnr = gift#uniq_winnr()
 
+  let s:gdb[name] = {}
+  let s:gdb[name].hlid = -1 " ハイライト中の highlight-id
+  let s:gdb[name].debug_winnr = winnr
+
   " ソースコード表示用
   call s:open_srcwin(name)
 
   " 元の位置に戻る.
   call gift#jump_window(winnr)
+
+  return name
 endfunction " }}}
 
 function! gdb#kill(...) abort " {{{
@@ -170,17 +213,8 @@ function! gdb#execute(mode) abort " {{{
     return
   endif
 
-  if s:is_quit(str)
-    call s:PM.writeln(b:sggdb_name, str)
-    call gdb#kill()
-    silent $ put = 'bye'
-    return
-  endif
-  let out = s:write(str)
-  call vimconsole#log(out)
-  if !s:is_igncmd(str)
-    call s:show_page(out)
-  endif
+  call s:command(str)
+
   if a:mode ==# 'i'
     " insert-mode になってほしい.
     startinsert!
