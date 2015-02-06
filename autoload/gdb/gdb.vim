@@ -15,9 +15,9 @@ function! s:def.step(cnt, ...) abort " {{{
   return gdb#do_command('s ' . a:cnt)
 endfunction " }}}
 
-function! s:def.fin(cnt, ...) abort " {{{
+function! s:def.fin(...) abort " {{{
   " current buffer/window is debug buffer
-  return gdb#do_command('fin ' . a:cnt)
+  return gdb#do_command('fin')
 endfunction " }}}
 
 " @vimlint(EVL103, 1, a:cnt)
