@@ -60,13 +60,17 @@ function! gdb#command(cmd) abort " {{{
 endfunction " }}}
 
 function! gdb#do_command(cmd, ...) abort " {{{
-  " private....
+  " the current buffer/window is debug buffer/window
+  if !exists('b:sggdb_name') || !has_key(s:gdb, b:sggdb_name)
+    return
+  endif
+  let dict = s:gdb[b:sggdb_name]
   let str = a:cmd
   if a:0 == 0
     silent $ put = s:prompt . a:cmd
   endif
 
-  if s:is_quit(str)
+  if dict.is_quitcmd(str)
     call s:PM.writeln(b:sggdb_name, str)
     call gdb#kill()
     silent $ put = 'bye'
@@ -74,7 +78,7 @@ function! gdb#do_command(cmd, ...) abort " {{{
   endif
   let out = s:write(str)
   call vimconsole#log(out)
-  if !s:is_igncmd(str)
+  if !dict.is_igncmd(str)
     call s:show_page(out)
   endif
 endfunction " }}}
@@ -130,60 +134,49 @@ function! gdb#kill(...) abort " {{{
   endif
 endfunction " }}}
 
-function! s:parse_fname(str) abort " {{{
-  let m = matchlist(a:str, 'at \(.*\):\(\d\+\)$')
-  if m != []
-    return [m[1], str2nr(m[2])]
-  endif
-  if a:str =~# '^\d\+\s'
-    return ['', str2nr(matchstr(a:str, '^\d\+\ze\s'))]
-  else
-    return ['', -1]
-  endif
-endfunction " }}}
-
 function! s:show_page(out) abort " {{{
   let lines = split(a:out, '\n')
 
   " @see s:parse_lno
   " @see s:parse_fname
   let update = 0
+  let name = b:sggdb_name
+  let dict = s:gdb[name]
   for str in lines
-    let [fname, lno] = s:parse_fname(str)
+    let [fname, lno] = dict.parse_fname(str)
     if fname !=# ''
-      let s:gdb[b:sggdb_name].fname = fname
+      let dict.fname = fname
     endif
     if lno > 0
-      let s:gdb[b:sggdb_name].lno = lno
+      let dict.lno = lno
       let update = 1
     endif
   endfor
 
   if update
-    let name = b:sggdb_name
-    if filereadable(s:gdb[name].fname)
-      let fname = s:gdb[name].fname
+    if filereadable(dict.fname)
+      let fname = dict.fname
     else
-      let fname = findfile(s:gdb[name].fname, './**')
+      let fname = findfile(dict.fname, './**')
     endif
-    call vimconsole#log('fname=' . s:gdb[name].fname . ' -> ' . fname)
+    call vimconsole#log('fname=' . dict.fname . ' -> ' . fname)
     if fname !=# ''
       let winnr = gift#uniq_winnr()
       let save_pos = getpos('.')
       try
-        let ret = gift#jump_window(s:gdb[name].file_winnr)
+        let ret = gift#jump_window(dict.file_winnr)
         if ret == -1
           call s:open_srcwin(name)
         endif
-        if s:gdb[name].hlid > 0
+        if dict.hlid > 0
           try
-            call matchdelete(s:gdb[name].hlid)
+            call matchdelete(dict.hlid)
           catch /.*E803: .*/
           endtry
         endif
-        execute printf('silent :e +%d `=fname`', s:gdb[name].lno)
-        let s:gdb[name].hlid = matchadd('sggdb_hl_group', printf('\%%%dl', s:gdb[name].lno))
-        call vimconsole#log(printf('hlid=%s', string(s:gdb[name].hlid)))
+        execute printf('silent :e +%d `=fname`', dict.lno)
+        let dict.hlid = matchadd('sggdb_hl_group', printf('\%%%dl', dict.lno))
+        call vimconsole#log(printf('hlid=%s', string(dict.hlid)))
         nmap <silent> <buffer> <C-N> <Plug>(gdb-step-over)
         nmap <silent> <buffer> <C-I> <Plug>(gdb-step-in)
         nmap <silent> <buffer> <C-F> <Plug>(gdb-step-out)
@@ -196,16 +189,6 @@ function! s:show_page(out) abort " {{{
   endif
 
   return lines
-endfunction " }}}
-
-function! s:is_igncmd(str) abort " {{{
-  " 実行に直接関係のないコマンド.
-  " ソールファイルの表示を変更する必要がないとか.
-  return a:str =~# '^\s*\(bt\|l\%[ist]\|i\%[nfo]\|f\>\)\>'
-endfunction " }}}
-
-function! s:is_quit(str) abort " {{{
-  return a:str =~# '^\s*q\%[uit]\>'
 endfunction " }}}
 
 function! gdb#execute(mode) abort " {{{
