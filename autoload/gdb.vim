@@ -140,6 +140,16 @@ function! gdb#kill(...) abort " {{{
   endif
 endfunction " }}}
 
+function! s:searchfile(dict, name) abort " {{{
+  if filereadable(a:name)
+    let fname = a:dict.fname
+  else
+    let fname = findfile(a:name, './**')
+  endif
+
+  return fname
+endfunction " }}}
+
 function! s:show_page(out) abort " {{{
   let lines = split(a:out, '\n')
 
@@ -160,12 +170,7 @@ function! s:show_page(out) abort " {{{
   endfor
 
   if update
-    if filereadable(dict.fname)
-      let fname = dict.fname
-    else
-      let fname = findfile(dict.fname, './**')
-    endif
-    call vimconsole#log('fname=' . dict.fname . ' -> ' . fname)
+    let fname = s:searchfile(dict, dict.fname)
     if fname !=# ''
       let winnr = gift#uniq_winnr()
       let save_pos = getpos('.')
