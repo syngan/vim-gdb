@@ -28,21 +28,29 @@ function! s:open_srcwin(name) abort " {{{
 endfunction " }}}
 
 function! gdb#command(cmd) abort " {{{
+  " public
+  " break-point だけはどこからでも付けられても良い気がするが. さてさて.
   let name = get(w:, 'sggdb_name', get(b:, 'sggdb_name', ''))
-  if name ==# ''
+  if !has_key(s:gdb, name)
+        \ || !has_key(s:gdb[name], a:cmd)
+        \ || type(s:gdb[name][a:cmd]) != type(function('tr'))
     return
   endif
 
   let winnr = gift#uniq_winnr()
   let do_jump = (s:gdb[name].debug_winnr != winnr)
   if do_jump
+    let fname = expand('%:t')
+    let lno = line('.')
     if gift#jump_window(s:gdb[name].debug_winnr) < -1
       return
     endif
+  else
+    let fname = s:gdb[name].fname
+    let lno = s:gdb[name].lno
   endif
   try
-    silent $ put = s:prompt . a:cmd
-    call s:command(a:cmd)
+    call s:gdb[name][a:cmd](v:count1, fname, lno)
   finally
     if do_jump
       call gift#jump_window(winnr)
@@ -51,8 +59,12 @@ function! gdb#command(cmd) abort " {{{
 
 endfunction " }}}
 
-function! s:command(cmd) abort " {{{
+function! gdb#do_command(cmd, ...) abort " {{{
+  " private....
   let str = a:cmd
+  if a:0 == 0
+    silent $ put = s:prompt . a:cmd
+  endif
 
   if s:is_quit(str)
     call s:PM.writeln(b:sggdb_name, str)
@@ -82,8 +94,8 @@ function! gdb#launch(cmd_args) abort " {{{
   let b:sggdb_name = name
   call matchadd('sggdb_hl_prompt', s:prompt)
   call matchadd('sggdb_hl_input', s:prompt . '\zs.*')
-  inoremap <silent> <buffer> <CR> <ESC>:call gdb#execute('i')<CR>
-  nnoremap <silent> <buffer> <CR> :call gdb#execute('n')<CR>
+  inoremap <silent> <buffer> <CR> <ESC>:<C-u>call gdb#execute('i')<CR>
+  nnoremap <silent> <buffer> <CR> :<C-u>call gdb#execute('n')<CR>
   setlocal bufhidden=hide buftype=nofile noswapfile nobuflisted
   let [out, err, type] = s:PM.read_wait(b:sggdb_name, 0.5, [s:prompt])
   if type !=# 'matched'
@@ -97,7 +109,7 @@ function! gdb#launch(cmd_args) abort " {{{
 
   let winnr = gift#uniq_winnr()
 
-  let s:gdb[name] = {}
+  let s:gdb[name] = gdb#gdb#init()
   let s:gdb[name].hlid = -1 " ハイライト中の highlight-id
   let s:gdb[name].debug_winnr = winnr
 
@@ -154,8 +166,7 @@ function! s:show_page(out) abort " {{{
     else
       let fname = findfile(s:gdb[name].fname, './**')
     endif
-    call vimconsole#log('org:fname=' . s:gdb[name].fname)
-    call vimconsole#log('new:fname=' . fname)
+    call vimconsole#log('fname=' . s:gdb[name].fname . ' -> ' . fname)
     if fname !=# ''
       let winnr = gift#uniq_winnr()
       let save_pos = getpos('.')
@@ -173,6 +184,10 @@ function! s:show_page(out) abort " {{{
         execute printf('silent :e +%d `=fname`', s:gdb[name].lno)
         let s:gdb[name].hlid = matchadd('sggdb_hl_group', printf('\%%%dl', s:gdb[name].lno))
         call vimconsole#log(printf('hlid=%s', string(s:gdb[name].hlid)))
+        nmap <silent> <buffer> <C-N> <Plug>(gdb-step-over)
+        nmap <silent> <buffer> <C-I> <Plug>(gdb-step-in)
+        nmap <silent> <buffer> <C-F> <Plug>(gdb-step-out)
+        nmap <silent> <buffer> <C-B> <Plug>(gdb-break-point)
       finally
         call gift#jump_window(winnr)
         call setpos('.', save_pos)
@@ -186,7 +201,7 @@ endfunction " }}}
 function! s:is_igncmd(str) abort " {{{
   " 実行に直接関係のないコマンド.
   " ソールファイルの表示を変更する必要がないとか.
-  return a:str =~# '^\s*\(bt\|l\%[ist]\|i\%[nfo]\)\>'
+  return a:str =~# '^\s*\(bt\|l\%[ist]\|i\%[nfo]\|f\>\)\>'
 endfunction " }}}
 
 function! s:is_quit(str) abort " {{{
@@ -213,7 +228,7 @@ function! gdb#execute(mode) abort " {{{
     return
   endif
 
-  call s:command(str)
+  call gdb#do_command(str, 1)
 
   if a:mode ==# 'i'
     " insert-mode になってほしい.
