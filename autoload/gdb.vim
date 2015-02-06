@@ -228,6 +228,10 @@ function! s:write(str) abort " {{{
   return out
 endfunction " }}}
 
+function! gdb#dict() abort " {{{
+  return s:gdb
+endfunction " }}}
+
 let &cpo = s:save_cpo
 unlet s:save_cpo
 
