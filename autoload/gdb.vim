@@ -37,20 +37,21 @@ function! gdb#command(cmd) abort " {{{
     return
   endif
 
+  let dict = s:gdb[name]
   let winnr = gift#uniq_winnr()
-  let do_jump = (s:gdb[name].debug_winnr != winnr)
+  let do_jump = (dict.debug_winnr != winnr)
   if do_jump
     let fname = expand('%:t')
     let lno = line('.')
-    if gift#jump_window(s:gdb[name].debug_winnr) < -1
+    if gift#jump_window(dict.debug_winnr) < -1
       return
     endif
   else
-    let fname = s:gdb[name].fname
-    let lno = s:gdb[name].lno
+    let fname = dict.fname
+    let lno = dict.lno
   endif
   try
-    call s:gdb[name][a:cmd](v:count1, fname, lno)
+    call dict[a:cmd](v:count1, fname, lno)
   finally
     if do_jump
       call gift#jump_window(winnr)
@@ -67,6 +68,11 @@ function! gdb#do_command(cmd, ...) abort " {{{
   let dict = s:gdb[b:sggdb_name]
   let str = a:cmd
   if a:0 == 0
+    " send command from src buffer
+    let line = getline('$')
+    if line == s:prompt
+      silent $ delete _
+    endif
     silent $ put = s:prompt . a:cmd
   endif
 
