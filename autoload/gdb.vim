@@ -1,5 +1,9 @@
 scriptencoding utf-8
 
+" b:sggdb_name: gdb-debug buffer
+" w:sggdb_name: src-view window
+" t:sggdb_name: tab
+
 let s:save_cpo = &cpo
 set cpo&vim
 
@@ -17,10 +21,6 @@ function! s:exit(name) abort " {{{
   call gdb#kill(a:name)
 endfunction " }}}
 
-function! gdb#pm() abort " {{{
-  return s:PM
-endfunction " }}}
-
 function! s:open_srcwin(name) abort " {{{
   :new
   let s:gdb[a:name].file_winnr = gift#uniq_winnr()
@@ -30,7 +30,7 @@ endfunction " }}}
 function! gdb#command(cmd) abort " {{{
   " public
   " break-point だけはどこからでも付けられても良い気がするが. さてさて.
-  let name = get(w:, 'sggdb_name', get(b:, 'sggdb_name', ''))
+  let name = gdb#util#getid()
   if !has_key(s:gdb, name)
         \ || !has_key(s:gdb[name], a:cmd)
         \ || type(s:gdb[name][a:cmd]) != type(function('tr'))
@@ -60,6 +60,7 @@ function! gdb#command(cmd) abort " {{{
 
 endfunction " }}}
 
+
 function! gdb#do_command(cmd, ...) abort " {{{
   " the current buffer/window is debug buffer/window
   if !exists('b:sggdb_name') || !has_key(s:gdb, b:sggdb_name)
@@ -83,7 +84,6 @@ function! gdb#do_command(cmd, ...) abort " {{{
     return
   endif
   let out = s:write(str)
-  call vimconsole#log(out)
   if !dict.is_igncmd(str)
     call s:show_page(out)
   endif
@@ -102,12 +102,13 @@ function! gdb#launch(cmd_args) abort " {{{
   :tabnew
   :e '[sg-gdb-log]'
   let b:sggdb_name = name
+  let t:sggdb_name = name
   call matchadd('sggdb_hl_prompt', s:prompt)
   call matchadd('sggdb_hl_input', s:prompt . '\zs.*')
   inoremap <silent> <buffer> <CR> <ESC>:<C-u>call gdb#execute('i')<CR>
   nnoremap <silent> <buffer> <CR> :<C-u>call gdb#execute('n')<CR>
   setlocal bufhidden=hide buftype=nofile noswapfile nobuflisted
-  let [out, err, type] = s:PM.read_wait(b:sggdb_name, 0.5, [s:prompt])
+  let [out, err, type] = s:PM.read_wait(name, 0.5, [s:prompt])
   if type !=# 'matched'
     " some error
     throw err
@@ -115,7 +116,7 @@ function! gdb#launch(cmd_args) abort " {{{
   silent $ put = out
   silent $ put = s:prompt
   execute 'normal!' 'A'
-  autocmd QuitPre <buffer> call s:exit(b:sggdb_name)
+  autocmd QuitPre <buffer> call s:exit(name)
 
   let winnr = gift#uniq_winnr()
 
@@ -133,7 +134,7 @@ function! gdb#launch(cmd_args) abort " {{{
 endfunction " }}}
 
 function! gdb#kill(...) abort " {{{
-  let name = a:0 > 0 ? a:1 : b:sggdb_name
+  let name = a:0 > 0 ? a:1 : gdb#util#getid()
   if has_key(s:gdb, name)
     echo s:PM.kill(name)
     unlet! s:gdb[name]

@@ -11,6 +11,9 @@ function! gdb#util#is_gdbwin() abort " {{{
   return exists('b:sggdb_name')
 endfunction " }}}
 
+function! gdb#util#getid() abort " {{{
+  return get(t:, 'sggdb_name', '')
+endfunction " }}}
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
