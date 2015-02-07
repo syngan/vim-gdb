@@ -112,26 +112,43 @@ function! s:newtab(name) abort " {{{
   endif
   silent $ put = out
   silent $ put = s:prompt
-  $
+  execute 'normal!' '$'
   autocmd QuitPre <buffer> call s:exit(b:sggdb_name)
 
   return gift#uniq_winnr()
 endfunction " }}}
 
-function! gdb#launch(cmd_args) abort " {{{
+function! s:config(kind) abort " {{{
+  if exists('g:gdb#config') && has_key(g:gdb#config, a:kind)
+    let config = copy(g:gdb#config[a:kind])
+  else
+    let config = {}
+  endif
+  if !has_key(config, 'srcdir')
+    let config.srcdir = ['./**']
+  elseif type(config.srcdir) != type([])
+    let config.srcdir = [config.srcdir]
+  endif
+  
+  return config
+endfunction " }}}
+
+function! gdb#launch(kind, ...) abort " {{{
   if !s:PM.is_available()
     " +reltime
     " vimproc
     throw 'vimproc and +reltime are required'
   endif
   let name = s:newid()
-  call s:PM.touch(name, 'gdb ' . a:cmd_args)
+  let args = a:0 ? a:1 : a:kind
+  call s:PM.touch(name, 'gdb ' . args)
 
   " タブを開く.
   let winnr = s:newtab(name)
   let s:gdb[name] = gdb#gdb#init()
   let s:gdb[name].hlid = -1 " ハイライト中の highlight-id
   let s:gdb[name].debug_winnr = winnr
+  let s:gdb[name].config = s:config(a:kind)
 
   " ソースコード表示用
   call s:open_srcwin(name)
@@ -154,13 +171,21 @@ function! s:searchfile(dict, name) abort " {{{
   if filereadable(a:name)
     let fname = a:dict.fname
   else
-    let fname = findfile(a:name, './**')
+    for dir in a:dict.config.srcdir
+      let fname = findfile(a:name, dir)
+      if fname !=# ''
+        let a:dict.fname = fname
+        break
+      endif
+    endfor
   endif
 
   return fname
 endfunction " }}}
 
 function! s:parse_out(dict, out) abort " {{{
+  " parse output (stdout) of GDB,
+  " get file name and lineno.
   let lines = split(a:out, '\n')
   let dict = a:dict
   let update = 0
@@ -204,7 +229,6 @@ function! s:show_page(out) abort " {{{
         endif
         execute printf('silent :e +%d `=fname`', dict.lno)
         let dict.hlid = matchadd('sggdb_hl_group', printf('\%%%dl', dict.lno))
-        call vimconsole#log(printf('hlid=%s', string(dict.hlid)))
         nmap <silent> <buffer> <C-N> <Plug>(gdb-step-over)
         nmap <silent> <buffer> <C-I> <Plug>(gdb-step-in)
         nmap <silent> <buffer> <C-F> <Plug>(gdb-step-out)
@@ -249,10 +273,6 @@ endfunction " }}}
 
 function! s:write(str) abort " {{{
   " send a:str to GDB process
-  if get(g:, 'sggdb_verbose', 0)
-    redraw | echo printf('send [%s]', a:str)
-  endif
-  call vimconsole#log(printf('send [%s]', a:str))
   call s:PM.writeln(b:sggdb_name, a:str)
   if line('.') < line('$')
     execute printf('%d,$delete _', line('.')+1)
@@ -285,7 +305,7 @@ function! s:write(str) abort " {{{
     silent $ put = err
   endif
   silent $ put = s:prompt
-  $
+  execute 'normal!' '$'
   return out
 endfunction " }}}
 
