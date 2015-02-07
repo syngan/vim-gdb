@@ -61,7 +61,6 @@ function! gdb#command(cmd) abort " {{{
 
 endfunction " }}}
 
-
 function! gdb#do_command(cmd, ...) abort " {{{
   " the current buffer/window is debug buffer/window
   if !exists('b:sggdb_name') || !has_key(s:gdb, b:sggdb_name)
@@ -96,6 +95,29 @@ function! s:newid() abort " {{{
   return s:id
 endfunction " }}}
 
+function! s:newtab(name) abort " {{{
+  :tabnew
+  :e '[sg-gdb-log]'
+  let b:sggdb_name = a:name
+  let t:sggdb_name = a:name
+  call matchadd('sggdb_hl_prompt', s:prompt)
+  call matchadd('sggdb_hl_input', s:prompt . '\zs.*')
+  inoremap <silent> <buffer> <CR> <ESC>:<C-u>call gdb#execute('i')<CR>
+  nnoremap <silent> <buffer> <CR> :<C-u>call gdb#execute('n')<CR>
+  setlocal bufhidden=hide buftype=nofile noswapfile nobuflisted
+  let [out, err, type] = s:PM.read_wait(a:name, 0.5, [s:prompt])
+  if type !=# 'matched'
+    " some error
+    throw err
+  endif
+  silent $ put = out
+  silent $ put = s:prompt
+  $
+  autocmd QuitPre <buffer> call s:exit(name)
+
+  return gift#uniq_winnr()
+endfunction " }}}
+
 function! gdb#launch(cmd_args) abort " {{{
   if !s:PM.is_available()
     " +reltime
@@ -106,27 +128,7 @@ function! gdb#launch(cmd_args) abort " {{{
   call s:PM.touch(name, 'gdb ' . a:cmd_args)
 
   " タブを開く.
-  :tabnew
-  :e '[sg-gdb-log]'
-  let b:sggdb_name = name
-  let t:sggdb_name = name
-  call matchadd('sggdb_hl_prompt', s:prompt)
-  call matchadd('sggdb_hl_input', s:prompt . '\zs.*')
-  inoremap <silent> <buffer> <CR> <ESC>:<C-u>call gdb#execute('i')<CR>
-  nnoremap <silent> <buffer> <CR> :<C-u>call gdb#execute('n')<CR>
-  setlocal bufhidden=hide buftype=nofile noswapfile nobuflisted
-  let [out, err, type] = s:PM.read_wait(name, 0.5, [s:prompt])
-  if type !=# 'matched'
-    " some error
-    throw err
-  endif
-  silent $ put = out
-  silent $ put = s:prompt
-  $
-  autocmd QuitPre <buffer> call s:exit(name)
-
-  let winnr = gift#uniq_winnr()
-
+  let winnr = s:newtab(name)
   let s:gdb[name] = gdb#gdb#init()
   let s:gdb[name].hlid = -1 " ハイライト中の highlight-id
   let s:gdb[name].debug_winnr = winnr
