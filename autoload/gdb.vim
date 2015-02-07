@@ -7,6 +7,7 @@ scriptencoding utf-8
 let s:save_cpo = &cpo
 set cpo&vim
 
+let s:id = 0
 let s:name = 'sg_gdb'
 let s:prompt = '(gdb) '
 let s:PM = gdb#pm#import()
@@ -89,13 +90,19 @@ function! gdb#do_command(cmd, ...) abort " {{{
   endif
 endfunction " }}}
 
+function! s:newid() abort " {{{
+  " 一意 ID
+  let s:id += 1
+  return s:id
+endfunction " }}}
+
 function! gdb#launch(cmd_args) abort " {{{
   if !s:PM.is_available()
     " +reltime
     " vimproc
     throw 'vimproc and +reltime are required'
   endif
-  let name = s:name " 一意 ID
+  let name = s:newid()
   call s:PM.touch(name, 'gdb ' . a:cmd_args)
 
   " タブを開く.
@@ -115,7 +122,7 @@ function! gdb#launch(cmd_args) abort " {{{
   endif
   silent $ put = out
   silent $ put = s:prompt
-  execute 'normal!' 'A'
+  $
   autocmd QuitPre <buffer> call s:exit(name)
 
   let winnr = gift#uniq_winnr()
