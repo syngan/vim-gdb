@@ -113,7 +113,7 @@ function! s:newtab(name) abort " {{{
   silent $ put = out
   silent $ put = s:prompt
   $
-  autocmd QuitPre <buffer> call s:exit(name)
+  autocmd QuitPre <buffer> call s:exit(b:sggdb_name)
 
   return gift#uniq_winnr()
 endfunction " }}}
