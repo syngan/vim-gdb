@@ -160,14 +160,10 @@ function! s:searchfile(dict, name) abort " {{{
   return fname
 endfunction " }}}
 
-function! s:show_page(out) abort " {{{
+function! s:parse_out(dict, out) abort " {{{
   let lines = split(a:out, '\n')
-
-  " @see s:parse_lno
-  " @see s:parse_fname
+  let dict = a:dict
   let update = 0
-  let name = b:sggdb_name
-  let dict = s:gdb[name]
   for str in lines
     let [fname, lno] = dict.parse_fname(str)
     if fname !=# ''
@@ -178,6 +174,17 @@ function! s:show_page(out) abort " {{{
       let update = 1
     endif
   endfor
+  return update
+endfunction " }}}
+
+function! s:show_page(out) abort " {{{
+  " the current buffer/window is debug buffer/window
+
+  " @see s:parse_lno
+  " @see s:parse_fname
+  let name = b:sggdb_name
+  let dict = s:gdb[name]
+  let update = s:parse_out(dict, a:out)
 
   if update
     let fname = s:searchfile(dict, dict.fname)
@@ -209,10 +216,10 @@ function! s:show_page(out) abort " {{{
     endif
   endif
 
-  return lines
 endfunction " }}}
 
 function! gdb#execute(mode) abort " {{{
+  " gdb-buffer で <CR> 時にカレント行の内容を実行する.
   if !exists('b:sggdb_name')
     echoerr 'sggdb: gdb#launch() is not called'
     return
@@ -241,6 +248,7 @@ function! gdb#execute(mode) abort " {{{
 endfunction " }}}
 
 function! s:write(str) abort " {{{
+  " send a:str to GDB process
   if get(g:, 'sggdb_verbose', 0)
     redraw | echo printf('send [%s]', a:str)
   endif
@@ -282,6 +290,7 @@ function! s:write(str) abort " {{{
 endfunction " }}}
 
 function! gdb#dict() abort " {{{
+  " debug.
   return s:gdb
 endfunction " }}}
 
