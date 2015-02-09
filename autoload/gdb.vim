@@ -42,17 +42,16 @@ function! gdb#call(cmd) abort " {{{
   let winnr = gift#uniq_winnr()
   let do_jump = (dict.debug_winnr != winnr)
   if do_jump
-    let fname = expand('%:t')
-    let lno = line('.')
+    let inf = {'fname': expand('%:t'), 'lno': line('.')}
     if gift#jump_window(dict.debug_winnr) < -1
       return
     endif
   else
-    let fname = dict.fname
-    let lno = dict.lno
+    let inf = {'fname': dict.fname, 'lno': dict.lno}
   endif
+  let inf.cnt = v:count1
   try
-    call dict[a:cmd](v:count1, fname, lno)
+    call dict[a:cmd](inf)
   finally
     if do_jump
       call gift#jump_window(winnr)

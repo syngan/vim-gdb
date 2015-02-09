@@ -5,14 +5,14 @@ set cpo&vim
 
 let s:def = {}
 
-function! s:def.next(cnt, ...) abort " {{{
+function! s:def.next(inf) abort " {{{
   " current buffer/window is debug buffer
-  return gdb#do_command('n ' . a:cnt)
+  return gdb#do_command('n ' . a:inf.cnt)
 endfunction " }}}
 
-function! s:def.step(cnt, ...) abort " {{{
+function! s:def.step(inf) abort " {{{
   " current buffer/window is debug buffer
-  return gdb#do_command('s ' . a:cnt)
+  return gdb#do_command('s ' . a:inf.cnt)
 endfunction " }}}
 
 function! s:def.fin(...) abort " {{{
@@ -20,12 +20,10 @@ function! s:def.fin(...) abort " {{{
   return gdb#do_command('fin')
 endfunction " }}}
 
-" @vimlint(EVL103, 1, a:cnt)
-function! s:def.break(cnt, fname, lno) abort " {{{
+function! s:def.break(inf) abort " {{{
   " current buffer/window is debug buffer
-  return gdb#do_command(printf('b %s:%d', a:fname, a:lno))
+  return gdb#do_command(printf('b %s:%d', a:inf.fname, a:inf.lno))
 endfunction " }}}
-" @vimlint(EVL103, 0, a:cnt)
 
 function! s:def.is_quitcmd(str) abort " {{{
   return a:str =~# '^\s*q\%[uit]\>'
