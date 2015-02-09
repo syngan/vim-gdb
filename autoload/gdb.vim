@@ -65,7 +65,7 @@ function! gdb#do_command(cmd, ...) abort " {{{
   " the current buffer/window is debug buffer/window
   " send a:cmd to 'gdb'
   " called from gdb#do_cursorline and gdb#xxx#{step,next,fin,...}
-  if !exists('b:sggdb_name') || !has_key(s:gdb, b:sggdb_name)
+  if !gdb#util#is_gdbwin(s:gdb)
     return
   endif
   let dict = s:gdb[b:sggdb_name]

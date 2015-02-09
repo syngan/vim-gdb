@@ -7,8 +7,8 @@ function! gdb#util#is_srcwin() abort " {{{
   return exists('w:sggdb_name')
 endfunction " }}}
 
-function! gdb#util#is_gdbwin() abort " {{{
-  return exists('b:sggdb_name')
+function! gdb#util#is_gdbwin(gdb) abort " {{{
+  return exists('b:sggdb_name') && has_key(a:gdb, b:sggdb_name)
 endfunction " }}}
 
 function! gdb#util#getid() abort " {{{
