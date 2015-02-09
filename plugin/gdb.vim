@@ -4,10 +4,10 @@ let s:save_cpo = &cpo
 set cpo&vim
 
 
-nnoremap <Plug>(gdb-step-in)     :<C-u>call gdb#command('step')<CR>
-nnoremap <Plug>(gdb-step-over)   :<C-u>call gdb#command('next')<CR>
-nnoremap <Plug>(gdb-step-out)    :<C-u>call gdb#command('fin')<CR>
-nnoremap <Plug>(gdb-break-point) :<C-u>call gdb#command('break')<CR>
+nnoremap <Plug>(gdb-step-in)     :<C-u>call gdb#call('step')<CR>
+nnoremap <Plug>(gdb-step-over)   :<C-u>call gdb#call('next')<CR>
+nnoremap <Plug>(gdb-step-out)    :<C-u>call gdb#call('fin')<CR>
+nnoremap <Plug>(gdb-break-point) :<C-u>call gdb#call('break')<CR>
 
 let &cpo = s:save_cpo
 unlet s:save_cpo

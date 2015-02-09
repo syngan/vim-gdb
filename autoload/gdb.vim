@@ -8,7 +8,6 @@ let s:save_cpo = &cpo
 set cpo&vim
 
 let s:id = 0
-let s:name = 'sg_gdb'
 let s:prompt = '(gdb) '
 let s:PM = gdb#pm#import()
 let s:gdb = {}
@@ -28,8 +27,9 @@ function! s:open_srcwin(name) abort " {{{
   let w:sggdb_name = a:name
 endfunction " }}}
 
-function! gdb#command(cmd) abort " {{{
+function! gdb#call(cmd) abort " {{{
   " public
+  " a:cmd is 'next', 'step', 'fin', ...
   " break-point だけはどこからでも付けられても良い気がするが. さてさて.
   let name = gdb#util#getid()
   if !has_key(s:gdb, name)
@@ -63,6 +63,8 @@ endfunction " }}}
 
 function! gdb#do_command(cmd, ...) abort " {{{
   " the current buffer/window is debug buffer/window
+  " send a:cmd to 'gdb'
+  " called from gdb#do_cursorline and gdb#xxx#{step,next,fin,...}
   if !exists('b:sggdb_name') || !has_key(s:gdb, b:sggdb_name)
     return
   endif
@@ -102,8 +104,8 @@ function! s:newtab(name) abort " {{{
   let t:sggdb_name = a:name
   call matchadd('sggdb_hl_prompt', s:prompt)
   call matchadd('sggdb_hl_input', s:prompt . '\zs.*')
-  inoremap <silent> <buffer> <CR> <ESC>:<C-u>call gdb#execute('i')<CR>
-  nnoremap <silent> <buffer> <CR> :<C-u>call gdb#execute('n')<CR>
+  inoremap <silent> <buffer> <CR> <ESC>:<C-u>call gdb#do_cursorline('i')<CR>
+  nnoremap <silent> <buffer> <CR> :<C-u>call gdb#do_cursorline('n')<CR>
   setlocal bufhidden=hide buftype=nofile noswapfile nobuflisted
   let [out, err, type] = s:PM.read_wait(a:name, 0.5, [s:prompt])
   if type !=# 'matched'
@@ -242,10 +244,10 @@ function! s:show_page(out) abort " {{{
 
 endfunction " }}}
 
-function! gdb#execute(mode) abort " {{{
+function! gdb#do_cursorline(mode) abort " {{{
   " gdb-buffer で <CR> 時にカレント行の内容を実行する.
   if !exists('b:sggdb_name')
-    echoerr 'sggdb: gdb#launch() is not called'
+    echoerr 'gdb#launch() is not called'
     return
   endif
   if !has_key(s:gdb, b:sggdb_name)
