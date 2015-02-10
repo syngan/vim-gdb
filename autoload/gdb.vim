@@ -16,6 +16,16 @@ let s:gdb = {}
 :highlight sggdb_hl_prompt cterm=bold           ctermfg=139 ctermbg=black
 :highlight sggdb_hl_input  ctermfg=yellow ctermbg=black
 
+function! gdb#launch_cmd(kind, ...) abort " {{{
+  call vimconsole#log("lcm=")
+  call vimconsole#log(a:000)
+  if a:0 == 0
+    return gdb#launch(a:kind)
+  else
+    return gdb#launch(a:kind, join(a:000, ' '))
+  endif
+endfunction " }}}
+
 function! s:exit(name) abort " {{{
   only
   call gdb#kill(a:name)
@@ -98,7 +108,7 @@ endfunction " }}}
 
 function! s:newtab(name) abort " {{{
   :tabnew
-  :e '[sg-gdb-log]'
+  :e `=printf('[sg-gdb-%d]', a:name)`
   let b:sggdb_name = a:name
   let t:sggdb_name = a:name
   call matchadd('sggdb_hl_prompt', s:prompt)
@@ -158,7 +168,8 @@ function! gdb#launch(kind, ...) abort " {{{
   endif
   let name = s:newid()
   let config = s:config(a:kind)
-  call s:PM.touch(name, 'gdb ' . config.args)
+  let args = a:0 == 0 ? config.args : a:1
+  call s:PM.touch(name, 'gdb ' . args)
 
   " タブを開く.
   let winnr = s:newtab(name)
