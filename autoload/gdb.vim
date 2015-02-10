@@ -137,6 +137,10 @@ function! s:config(kind) abort " {{{
     let config.starup_commands = [config.starup_commands]
   endif
 
+  if !has_key(config, 'args') || type(config.args) != type('')
+    let config.args = a:kind
+  endif
+
   return config
 endfunction " }}}
 
@@ -153,15 +157,15 @@ function! gdb#launch(kind, ...) abort " {{{
     throw 'vimproc and +reltime are required'
   endif
   let name = s:newid()
-  let args = a:0 ? a:1 : a:kind
-  call s:PM.touch(name, 'gdb ' . args)
+  let config = s:config(a:kind)
+  call s:PM.touch(name, 'gdb ' . config.args)
 
   " タブを開く.
   let winnr = s:newtab(name)
   let s:gdb[name] = gdb#gdb#init()
   let s:gdb[name].hlid = -1 " ハイライト中の highlight-id
   let s:gdb[name].debug_winnr = winnr
-  let s:gdb[name].config = s:config(a:kind)
+  let s:gdb[name].config = config
 
   " ソースコード表示用
   call s:open_srcwin(name)
