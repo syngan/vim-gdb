@@ -16,14 +16,19 @@ let s:gdb = {}
 :highlight sggdb_hl_prompt cterm=bold           ctermfg=139 ctermbg=black
 :highlight sggdb_hl_input  ctermfg=yellow ctermbg=black
 
-function! gdb#start_cmd(kind, ...) abort " {{{
-  call vimconsole#log("lcm=")
-  call vimconsole#log(a:000)
-  if a:0 == 0
-    return gdb#start(a:kind)
-  else
-    return gdb#start(a:kind, join(a:000, ' '))
+function! gdb#ex_command(...) abort " {{{
+  if a:1 ==# '-start'
+    let n = 1
+    if a:0 <= n
+      echoerr 'gdb: missing {kind}'
+      return
+    elseif a:0 == n + 1 
+      return gdb#start(a:000[n])
+    else
+      return gdb#start(a:000[n], join(a:000[n+1 :], ' '))
+    endif
   endif
+  return gdb#call('command', join(a:000, ' '))
 endfunction " }}}
 
 function! s:exit(name) abort " {{{
@@ -37,12 +42,12 @@ function! s:open_srcwin(name) abort " {{{
   let w:sggdb_name = a:name
 endfunction " }}}
 
-function! gdb#call(cmd) abort " {{{
+function! gdb#call(cmd, ...) abort " {{{
   " public
   " a:cmd is 'next', 'step', 'fin', ...
   " break-point だけはどこからでも付けられても良い気がするが. さてさて.
   let name = gdb#util#getid()
-  if !has_key(s:gdb, name)
+  if !has_key(s:gdb, name) 
         \ || !has_key(s:gdb[name], a:cmd)
         \ || type(s:gdb[name][a:cmd]) != type(function('tr'))
     return
@@ -60,6 +65,7 @@ function! gdb#call(cmd) abort " {{{
     let inf = {'fname': dict.fname, 'lno': dict.lno}
   endif
   let inf.cnt = v:count1
+  let inf.a000 = a:000
   try
     call dict[a:cmd](inf)
   finally
@@ -177,6 +183,7 @@ function! gdb#start(kind, ...) abort " {{{
   let s:gdb[name].hlid = -1 " ハイライト中の highlight-id
   let s:gdb[name].debug_winnr = winnr
   let s:gdb[name].config = config
+  let s:gdb[name].command = function('gdb#util#command')
 
   " ソースコード表示用
   call s:open_srcwin(name)

@@ -15,6 +15,10 @@ function! gdb#util#getid() abort " {{{
   return get(t:, 'sggdb_name', '')
 endfunction " }}}
 
+function! gdb#util#command(inf) abort " {{{
+  return gdb#do_command(join(a:inf.a000, ' '))
+endfunction " }}}
+
 let &cpo = s:save_cpo
 unlet s:save_cpo
 
