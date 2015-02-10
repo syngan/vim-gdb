@@ -9,7 +9,7 @@ nnoremap <Plug>(gdb-step-over)   :<C-u>call gdb#call('next')<CR>
 nnoremap <Plug>(gdb-step-out)    :<C-u>call gdb#call('fin')<CR>
 nnoremap <Plug>(gdb-break-point) :<C-u>call gdb#call('break')<CR>
 
-command! -nargs=+ GdbStart :call gdb#launch_cmd(<f-args>)
+command! -nargs=+ GdbStart :call gdb#start_cmd(<f-args>)
 
 
 let &cpo = s:save_cpo

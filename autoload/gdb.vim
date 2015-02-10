@@ -16,13 +16,13 @@ let s:gdb = {}
 :highlight sggdb_hl_prompt cterm=bold           ctermfg=139 ctermbg=black
 :highlight sggdb_hl_input  ctermfg=yellow ctermbg=black
 
-function! gdb#launch_cmd(kind, ...) abort " {{{
+function! gdb#start_cmd(kind, ...) abort " {{{
   call vimconsole#log("lcm=")
   call vimconsole#log(a:000)
   if a:0 == 0
-    return gdb#launch(a:kind)
+    return gdb#start(a:kind)
   else
-    return gdb#launch(a:kind, join(a:000, ' '))
+    return gdb#start(a:kind, join(a:000, ' '))
   endif
 endfunction " }}}
 
@@ -160,7 +160,7 @@ function! s:startup_command(dict) abort " {{{
   endfor
 endfunction " }}}
 
-function! gdb#launch(kind, ...) abort " {{{
+function! gdb#start(kind, ...) abort " {{{
   if !s:PM.is_available()
     " +reltime
     " vimproc
@@ -275,7 +275,7 @@ endfunction " }}}
 function! gdb#do_cursorline(mode) abort " {{{
   " gdb-buffer で <CR> 時にカレント行の内容を実行する.
   if !exists('b:sggdb_name')
-    echoerr 'gdb#launch() is not called'
+    echoerr 'gdb#start() is not called'
     return
   endif
   if !has_key(s:gdb, b:sggdb_name)
