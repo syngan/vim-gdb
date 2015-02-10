@@ -130,8 +130,20 @@ function! s:config(kind) abort " {{{
   elseif type(config.srcdir) != type([])
     let config.srcdir = [config.srcdir]
   endif
-  
+
+  if !has_key(config, 'starup_commands')
+    let config.starup_commands = []
+  elseif type(config.starup_commands) != type([])
+    let config.starup_commands = [config.starup_commands]
+  endif
+
   return config
+endfunction " }}}
+
+function! s:startup_command(dict) abort " {{{
+  for cmd in a:dict.config.starup_commands
+    call gdb#do_command(cmd)
+  endfor
 endfunction " }}}
 
 function! gdb#launch(kind, ...) abort " {{{
@@ -156,6 +168,8 @@ function! gdb#launch(kind, ...) abort " {{{
 
   " 元の位置に戻る.
   call gift#jump_window(winnr)
+
+  call s:startup_command(s:gdb[name])
 
   return name
 endfunction " }}}
