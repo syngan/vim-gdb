@@ -21,6 +21,14 @@ vim-gdb
 
 ## コマンド
 
+:Gdb -start {kind} {command-line}
+   - gdb#start() のコマンド版
+:Gdb {command-line}
+   - gdb にコマンドを送る
+   - e.g. :Gdb next
+
+## 関数
+
 - gdb#start({kind} [, {command-line}])
    - `kind`: `g:gdb#config` で設定する情報. 通常は実行ファイル名と合わせる.
    - `command-line` を省略すると, `gdb {g:gdb#config[kind].args}` が実行される.
