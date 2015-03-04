@@ -5,6 +5,7 @@ set cpo&vim
 
 let s:def = {}
 
+" Debugger Commands {{{
 function! s:def.next(inf) abort " {{{
   " current buffer/window is debug buffer
   return gdb#do_command('n ' . a:inf.cnt)
@@ -24,6 +25,28 @@ function! s:def.break(inf) abort " {{{
   " current buffer/window is debug buffer
   return gdb#do_command(printf('b %s:%d', a:inf.fname, a:inf.lno))
 endfunction " }}}
+
+function! s:def.start(...) abort " {{{
+  " current buffer/window is debug buffer
+  return gdb#do_command('cont')
+endfunction " }}}
+
+function! s:def.restart(...) abort " {{{
+  " current buffer/window is debug buffer
+  return gdb#do_command('run')
+endfunction " }}}
+
+function! s:def.print(inf) abort " {{{
+  if len(a:inf.a000) == 0
+    " keyword under the cursor
+    let var = a:inf.cword
+  else
+    let var = a:inf.a000[0]
+  endif
+  return gdb#do_command(printf('p %s', var))
+endfunction " }}}
+
+" }}}
 
 function! s:def.is_quitcmd(str) abort " {{{
   return a:str =~# '^\s*q\%[uit]\>'

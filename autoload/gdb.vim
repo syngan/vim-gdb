@@ -42,6 +42,22 @@ function! s:open_srcwin(name) abort " {{{
   let w:sggdb_name = a:name
 endfunction " }}}
 
+function! s:get_selected_text() "{{{
+  let reg = '"'
+  let save_reg = [getreg(reg), getregtype(reg)]
+  try
+    silent normal! gvy
+    return getreg(reg)
+  finally
+    call setreg(reg, save_reg[0], save_reg[1])
+  endtry
+endfunction "}}}
+
+function! gdb#vcall(cmd, ...) abort " {{{
+  let p = s:get_selected_text()
+  return call('gdb#call', [a:cmd, p] + a:000)
+endfunction " }}}
+
 function! gdb#call(cmd, ...) abort " {{{
   " public
   " a:cmd is 'next', 'step', 'fin', ...
@@ -56,13 +72,16 @@ function! gdb#call(cmd, ...) abort " {{{
   let dict = s:gdb[name]
   let winnr = gift#uniq_winnr()
   let do_jump = (dict.debug_winnr != winnr)
+  let inf = {'line': getline('.'), 'pos': getpos('.'), 'cword': expand('<cword>')}
   if do_jump
-    let inf = {'fname': expand('%:t'), 'lno': line('.')}
-    if gift#jump_window(dict.debug_winnr) < -1
+    let inf.fname = expand('%:t')
+    let inf.lno = line('.')
+    if gift#jump_window(dict.debug_winnr) == -1
       return
     endif
   else
-    let inf = {'fname': dict.fname, 'lno': dict.lno}
+    let inf.fname = dict.fname
+    let inf.lno = dict.lno
   endif
   let inf.cnt = v:count1
   let inf.a000 = a:000
@@ -266,10 +285,12 @@ function! s:show_page(out) abort " {{{
         endif
         execute printf('silent :e +%d `=fname`', dict.lno)
         let dict.hlid = matchadd('sggdb_hl_group', printf('\%%%dl', dict.lno))
-        nmap <silent> <buffer> <C-N> <Plug>(gdb-step-over)
-        nmap <silent> <buffer> <C-I> <Plug>(gdb-step-in)
-        nmap <silent> <buffer> <C-F> <Plug>(gdb-step-out)
-        nmap <silent> <buffer> <C-B> <Plug>(gdb-break-point)
+        nmap <silent> <buffer> <C-N> <Plug>(gdb-step-over)   " F10 next
+        nmap <silent> <buffer> <C-I> <Plug>(gdb-step-in)     " F11 step-in
+        nmap <silent> <buffer> <C-F> <Plug>(gdb-step-out)    " shift+F11
+        nmap <silent> <buffer> <C-B> <Plug>(gdb-break-point) " F9
+        nmap <silent> <buffer> <C-P> <Plug>(gdb-print)
+        vmap <silent> <buffer> <C-P> <Plug>(gdb-print)
       finally
         call gift#jump_window(winnr)
         call setpos('.', save_pos)
