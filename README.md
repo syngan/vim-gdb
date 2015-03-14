@@ -9,15 +9,22 @@ vim-gdb
 - gdb 連携
 - 入力待ちをするようなコマンドには未対応. どうすればいいのかわからない.
 
-1. `call gdb#start('hoge')` で `gdb hoge` を実行する感じ.
-    - src を表示する window (src-win) と, gdb コマンド情報を示す window (gdb-win) をもつ新しいタブを開く
-2. gdb-win でプロンプト `(gdb) ` の後に適当にコマンドをうち `<CR>`.
-   または normal-mode で入力済みの行で `<CR>`
-3. src-win で
-    - `<C-I>` すると step-in
-    - `<C-N>` すると step-over
-    - `<C-F>` すると step-out
-    - `<C-B>` するとブレイクポイントを設定する
+1. `gdb` を開始する.
+    - `call gdb#start('hoge')` で `gdb hoge` を実行する, または
+	- `:Gdb -start hoge` で `gdb hoge` を実行する
+    - src を表示する window (`src-win`) と, gdb コマンド情報を示す window (`gdb-win`) をもつ新しいタブが開く
+2. `gdb-win` 上で `gdb` コマンドを実行する.
+   - `gdb-win` でプロンプト `(gdb) ` の後に適当にコマンドをうち `<CR>`.
+   - または normal-mode で入力済みの行で `<CR>`
+3. `src-win` 上で `gdb` コマンドを実行する.
+    - `<C-I>` すると step-in (`step`)
+    - `<C-N>` すると step-over (`next`)
+    - `<C-F>` すると step-out (`fin`)
+    - `<C-B>` するとブレイクポイントを設定する (`break`)
+    - `<C-P>` するとカーソル上の変数の値を表示 (`print`)
+	- もしくは, `:Gdb hoge` で `hoge` を実行
+4. 終了する
+    - `:q` すると, タブが閉じる
 
 ## コマンド
 
@@ -25,7 +32,7 @@ vim-gdb
    - gdb#start() のコマンド版
 :Gdb {command-line}
    - gdb にコマンドを送る
-   - e.g. :Gdb next
+   - e.g. `:Gdb next`
 
 ## 関数
 
