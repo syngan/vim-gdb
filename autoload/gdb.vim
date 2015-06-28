@@ -283,7 +283,7 @@ function! s:show_page(out) abort " {{{
           catch /.*E803: .*/
           endtry
         endif
-        execute printf('silent :e +%d `=fname`', dict.lno)
+        silent! execute printf(':e +%d `=fname`', dict.lno)
         let dict.hlid = matchadd('sggdb_hl_group', printf('\%%%dl', dict.lno))
         nmap <silent> <buffer> <C-N> <Plug>(gdb-step-over)   " F10 next
         nmap <silent> <buffer> <C-I> <Plug>(gdb-step-in)     " F11 step-in
