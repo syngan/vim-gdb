@@ -7,6 +7,10 @@ scriptencoding utf-8
 let s:save_cpo = &cpo
 set cpo&vim
 
+" {{{ vital
+let s:gift = vital#of('sg_gdb').import('Gift')
+" }}}
+
 let s:id = 0
 let s:prompt = '(gdb) '
 let s:PM = gdb#pm#import()
@@ -38,7 +42,7 @@ endfunction " }}}
 
 function! s:open_srcwin(name) abort " {{{
   :new
-  let s:gdb[a:name].file_winnr = gift#uniq_winnr()
+  let s:gdb[a:name].file_winnr = s:gift.uniq_winnr()
   let w:sggdb_name = a:name
 endfunction " }}}
 
@@ -70,13 +74,13 @@ function! gdb#call(cmd, ...) abort " {{{
   endif
 
   let dict = s:gdb[name]
-  let winnr = gift#uniq_winnr()
+  let winnr = s:gift.uniq_winnr()
   let do_jump = (dict.debug_winnr != winnr)
   let inf = {'line': getline('.'), 'pos': getpos('.'), 'cword': expand('<cword>')}
   if do_jump
     let inf.fname = expand('%:t')
     let inf.lno = line('.')
-    if gift#jump_window(dict.debug_winnr) == -1
+    if s:gift.jump_window(dict.debug_winnr) == -1
       return
     endif
   else
@@ -89,7 +93,7 @@ function! gdb#call(cmd, ...) abort " {{{
     call dict[a:cmd](inf)
   finally
     if do_jump
-      call gift#jump_window(winnr)
+      call s:gift.jump_window(winnr)
     endif
   endtry
 
@@ -151,7 +155,7 @@ function! s:newtab(name) abort " {{{
   execute 'normal!' '$'
   autocmd QuitPre <buffer> call s:exit(b:sggdb_name)
 
-  return gift#uniq_winnr()
+  return s:gift.uniq_winnr()
 endfunction " }}}
 
 function! s:config(kind) abort " {{{
@@ -208,7 +212,7 @@ function! gdb#start(kind, ...) abort " {{{
   call s:open_srcwin(name)
 
   " 元の位置に戻る.
-  call gift#jump_window(winnr)
+  call s:gift.jump_window(winnr)
 
   call s:startup_command(s:gdb[name])
 
@@ -270,10 +274,10 @@ function! s:show_page(out) abort " {{{
   if update
     let fname = s:searchfile(dict, dict.fname)
     if fname !=# ''
-      let winnr = gift#uniq_winnr()
+      let winnr = s:gift.uniq_winnr()
       let save_pos = getpos('.')
       try
-        let ret = gift#jump_window(dict.file_winnr)
+        let ret = s:gift.jump_window(dict.file_winnr)
         if ret == -1
           call s:open_srcwin(name)
         endif
@@ -292,7 +296,7 @@ function! s:show_page(out) abort " {{{
         nmap <silent> <buffer> <C-P> <Plug>(gdb-print)
         vmap <silent> <buffer> <C-P> <Plug>(gdb-print)
       finally
-        call gift#jump_window(winnr)
+        call s:gift.jump_window(winnr)
         call setpos('.', save_pos)
       endtry
     endif

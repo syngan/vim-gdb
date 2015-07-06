@@ -5,7 +5,6 @@ vim-gdb
 
 - required
    - [Shougo/vimproc](https://github.com/Shougo/vimproc.vim)
-   - [osyo-manga/vim-gift](https://github.com/osyo-manga/vim-gift)
    - +reltime
 
 - gdb 連携
