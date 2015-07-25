@@ -64,7 +64,7 @@ endfunction
 
 
 function! s:winnr(uniqnr)
-	let [tabnr, winnr] = s:Window.tabpagewinnr(a:uniqnr)
+	let winnr = s:Window.tabpagewinnr(a:uniqnr)[1]
 	return winnr
 endfunction
 
@@ -78,7 +78,7 @@ endfunction
 function! s:find(expr)
 	let gift_find_result = []
 	for [tabnr, winnr] in s:tabpagewinnr_list()
-		let bufnr = s:bufnr([tabnr, winnr])
+		call s:bufnr([tabnr, winnr])
 		if eval(a:expr)
 			call add(gift_find_result, [tabnr, winnr])
 		endif
